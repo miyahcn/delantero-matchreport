@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Delantero MatchReport</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-text-size-adjust: 100%; }
+  html { font-size: 16px; }
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: #10141a;
+    min-height: 100vh;
+    color: #f0f2f8;
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+  header {
+    background: linear-gradient(135deg, #0d1f3c 0%, #1a3a6e 60%, #2a4a8a 100%);
+    padding: 20px 16px 14px;
+  }
+  .header-top { display: flex; align-items: center; gap: 10px; margin-bottom: 2px; }
+  .header-icon { font-size: 26px; }
+  h1 { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 2px; color: #fff; }
+  .header-sub { font-size: 12px; color: rgba(255,255,255,0.65); letter-spacing: 1px; }
+  .tabs { display: flex; background: #0d1510; border-bottom: 2px solid #0d1f3c; }
+  .tab { flex: 1; padding: 14px 0; text-align: center; font-size: 14px; font-weight: 700; color: #555; cursor: pointer; border: none; background: none; font-family: 'Noto Sans JP', sans-serif; }
+  .tab.active { color: #4a7abf; border-bottom: 3px solid #4a7abf; margin-bottom: -2px; }
+  .grade-bar { display: flex; gap: 8px; padding: 12px 16px; background: #161e18; overflow-x: auto; scrollbar-width: none; }
+  .grade-bar::-webkit-scrollbar { display: none; }
+  .grade-btn { flex-shrink: 0; padding: 8px 16px; border-radius: 20px; border: 1.5px solid #333; background: none; color: #aaa; font-size: 13px; font-weight: 700; cursor: pointer; font-family: 'Noto Sans JP', sans-serif; }
+  .grade-btn.active { background: #1a3a6e; border-color: #1a3a6e; color: #fff; }
+  .main { padding: 16px; }
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
+  .stat-card { background: #1a2230; border-radius: 12px; padding: 12px 6px; text-align: center; border: 1px solid #2a3a5e; }
+  .stat-num { font-family: 'Bebas Neue', sans-serif; font-size: 32px; line-height: 1; margin-bottom: 2px; }
+  .stat-num.win { color: #4a7abf; }
+  .stat-num.lose { color: #d93030; }
+  .stat-num.draw { color: #888; }
+  .stat-num.total { color: #a0aabf; }
+  .stat-label { font-size: 11px; color: #666; font-weight: 700; }
+  .section-title { font-size: 11px; font-weight: 700; color: #555; letter-spacing: 1.5px; margin-bottom: 10px; text-transform: uppercase; }
+  .match-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+  .match-card { background: #1a2230; border-radius: 12px; padding: 14px; border: 1px solid #2a3a5e; position: relative; overflow: hidden; cursor: pointer; }
+  .match-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
+  .match-card.win::before { background: #4a7abf; }
+  .match-card.lose::before { background: #d93030; }
+  .match-card.draw::before { background: #888; }
+  .match-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .match-date { font-size: 12px; color: #666; }
+  .match-badge { font-size: 11px; font-weight: 900; padding: 4px 10px; border-radius: 4px; letter-spacing: 1px; }
+  .badge-win { background: rgba(74,122,191,0.2); color: #4a7abf; }
+  .badge-lose { background: rgba(217,48,48,0.2); color: #d93030; }
+  .badge-draw { background: rgba(136,136,136,0.2); color: #888; }
+  .match-score-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .match-team { font-size: 13px; font-weight: 700; flex: 1; }
+  .match-score { font-family: 'Bebas Neue', sans-serif; font-size: 36px; letter-spacing: 3px; color: #fff; white-space: nowrap; }
+  .match-venue { font-size: 12px; color: #666; margin-top: 4px; }
+  .match-scorers { font-size: 12px; color: #a0aabf; margin-top: 4px; }
+  .match-coach { font-size: 12px; color: #7a9abf; margin-top: 4px; }
+  .edit-hint { font-size: 11px; color: #444; text-align: right; margin-top: 8px; }
+  .form-card { background: #1a2230; border-radius: 12px; padding: 16px; border: 1px solid #2a3a5e; }
+  .form-title { font-size: 15px; font-weight: 700; color: #4a7abf; margin-bottom: 16px; }
+  .form-group { margin-bottom: 16px; }
+  label { display: block; font-size: 12px; font-weight: 700; color: #888; margin-bottom: 6px; letter-spacing: 0.5px; }
+  input, select, textarea { width: 100%; padding: 12px; background: #0d1520; border: 1.5px solid #2a3a5e; border-radius: 8px; color: #fff; font-size: 16px; font-family: 'Noto Sans JP', sans-serif; outline: none; -webkit-appearance: none; }
+  input:focus, select:focus, textarea:focus { border-color: #4a7abf; }
+  select option { background: #0d1520; }
+  .score-row { display: grid; grid-template-columns: 1fr 30px 1fr; gap: 8px; align-items: center; }
+  .score-sep { font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: #444; text-align: center; }
+  .btn-primary { width: 100%; padding: 16px; background: linear-gradient(135deg, #1a3a6e, #4a7abf); border: none; border-radius: 12px; color: #fff; font-size: 16px; font-weight: 700; font-family: 'Noto Sans JP', sans-serif; cursor: pointer; letter-spacing: 1px; margin-top: 4px; }
+  .csv-btn { width: 100%; padding: 14px; background: none; border: 1.5px solid #2a4a8a; border-radius: 12px; color: #4a7abf; font-size: 14px; font-weight: 700; font-family: 'Noto Sans JP', sans-serif; cursor: pointer; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .empty { text-align: center; color: #555; font-size: 14px; padding: 40px 0; }
+  .loading { text-align: center; color: #555; font-size: 14px; padding: 40px 0; }
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 100; align-items: flex-end; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: #161e28; border-radius: 20px 20px 0 0; padding: 20px 16px 40px; width: 100%; max-height: 92vh; overflow-y: auto; border-top: 2px solid #2a3a5e; }
+  .modal-handle { width: 40px; height: 4px; background: #333; border-radius: 2px; margin: 0 auto 16px; }
+  .modal-title { font-size: 15px; font-weight: 700; color: #4a7abf; margin-bottom: 16px; }
+  .btn-update { width: 100%; padding: 16px; background: linear-gradient(135deg, #1a3a6e, #4a7abf); border: none; border-radius: 12px; color: #fff; font-size: 16px; font-weight: 700; font-family: 'Noto Sans JP', sans-serif; cursor: pointer; margin-top: 4px; }
+  .btn-danger { width: 100%; padding: 14px; background: none; border: 1.5px solid #8b2020; border-radius: 12px; color: #d93030; font-size: 14px; font-weight: 700; font-family: 'Noto Sans JP', sans-serif; cursor: pointer; margin-top: 10px; }
+  .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(80px); background: #1a3a6e; color: #fff; padding: 12px 24px; border-radius: 24px; font-size: 14px; font-weight: 700; transition: transform 0.3s; z-index: 999; white-space: nowrap; }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <span class="header-icon">⚽</span>
+    <h1>DELANTERO</h1>
+  </div>
+  <div class="header-sub">MatchReport</div>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="showTab('list')">📋 試合一覧</button>
+  <button class="tab" onclick="showTab('input')">＋ 記録する</button>
+</div>
+
+<div class="grade-bar">
+  <button class="grade-btn active" onclick="setGrade('all', this)">すべて</button>
+  <button class="grade-btn" onclick="setGrade('4', this)">U-10</button>
+  <button class="grade-btn" onclick="setGrade('5', this)">U-11</button>
+  <button class="grade-btn" onclick="setGrade('6', this)">U-12</button>
+</div>
+
+<div id="tab-list" class="main">
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-num total" id="s-total">-</div><div class="stat-label">試合</div></div>
+    <div class="stat-card"><div class="stat-num win" id="s-win">-</div><div class="stat-label">勝</div></div>
+    <div class="stat-card"><div class="stat-num draw" id="s-draw">-</div><div class="stat-label">分</div></div>
+    <div class="stat-card"><div class="stat-num lose" id="s-lose">-</div><div class="stat-label">負</div></div>
+  </div>
+  <div class="section-title">試合履歴</div>
+  <div class="match-list" id="match-list"><div class="loading">読み込み中...</div></div>
+  <button class="csv-btn" onclick="downloadCSV()">📥 Excelダウンロード（CSV）</button>
+</div>
+
+<div id="tab-input" class="main" style="display:none;">
+  <div class="form-card">
+    <div class="form-title">⚽ 試合を記録する</div>
+    <div class="form-group">
+      <label>カテゴリ</label>
+      <select id="f-grade">
+        <option value="4">U-10</option>
+        <option value="5">U-11</option>
+        <option value="6">U-12</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>試合日</label>
+      <input type="date" id="f-date">
+    </div>
+    <div class="form-group">
+      <label>対戦相手</label>
+      <input type="text" id="f-opponent" list="opponent-list" placeholder="チーム名を入力 or 選択">
+      <datalist id="opponent-list"></datalist>
+    </div>
+    <div class="form-group">
+      <label>会場</label>
+      <input type="text" id="f-venue" list="venue-list" placeholder="会場名を入力 or 選択">
+      <datalist id="venue-list"></datalist>
+    </div>
+    <div class="form-group">
+      <label>スコア</label>
+      <div class="score-row">
+        <input type="number" id="f-score-us" placeholder="デランテロFC" min="0">
+        <div class="score-sep">-</div>
+        <input type="number" id="f-score-them" placeholder="相手" min="0">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>得点者（カンマ区切り）</label>
+      <input type="text" id="f-scorers" placeholder="例: 田中, 鈴木">
+    </div>
+    <div class="form-group">
+      <label>メモ</label>
+      <textarea id="f-memo" rows="2" placeholder="試合の感想など"></textarea>
+    </div>
+    <div class="form-group">
+      <label>🧑‍💼 コーチメモ</label>
+      <textarea id="f-coach-memo" rows="2" placeholder="戦術・選手評価など"></textarea>
+    </div>
+    <button class="btn-primary" onclick="addMatch()">記録する</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">✏️ 試合を編集する</div>
+    <input type="hidden" id="e-id">
+    <div class="form-group">
+      <label>カテゴリ</label>
+      <select id="e-grade">
+        <option value="4">U-10</option>
+        <option value="5">U-11</option>
+        <option value="6">U-12</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>試合日</label>
+      <input type="date" id="e-date">
+    </div>
+    <div class="form-group">
+      <label>対戦相手</label>
+      <input type="text" id="e-opponent" list="opponent-list">
+    </div>
+    <div class="form-group">
+      <label>会場</label>
+      <input type="text" id="e-venue" list="venue-list">
+    </div>
+    <div class="form-group">
+      <label>スコア</label>
+      <div class="score-row">
+        <input type="number" id="e-score-us" min="0">
+        <div class="score-sep">-</div>
+        <input type="number" id="e-score-them" min="0">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>得点者（カンマ区切り）</label>
+      <input type="text" id="e-scorers">
+    </div>
+    <div class="form-group">
+      <label>メモ</label>
+      <textarea id="e-memo" rows="2"></textarea>
+    </div>
+    <div class="form-group">
+      <label>🧑‍💼 コーチメモ</label>
+      <textarea id="e-coach-memo" rows="2"></textarea>
+    </div>
+    <button class="btn-update" onclick="updateMatch()">更新する</button>
+    <button class="btn-danger" onclick="deleteMatch()">🗑 この試合を削除する</button>
+  </div>
+</div>
+
+<script>
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxNIoUrwu4E5Loklw-pumYBsmpEJbAFWbok1wkcZyn20QhPlirAbQZ9MMty9u2yGMnjrw/exec';
+
+let matches = [];
+let currentGrade = 'all';
+document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+
+function getResult(us, them) { return us > them ? 'win' : us < them ? 'lose' : 'draw'; }
+function getResultLabel(r) { return { win: '勝', lose: '負', draw: '分' }[r]; }
+function gradeLabel(g) { return { '4': 'U-10', '5': 'U-11', '6': 'U-12' }[g] || g; }
+function filtered() { return currentGrade === 'all' ? matches : matches.filter(m => m.grade === currentGrade); }
+
+function render() {
+  const list = filtered().slice().reverse();
+  const el = document.getElementById('match-list');
+  document.getElementById('s-total').textContent = list.length;
+  document.getElementById('s-win').textContent = list.filter(m => getResult(m.us, m.them) === 'win').length;
+  document.getElementById('s-draw').textContent = list.filter(m => getResult(m.us, m.them) === 'draw').length;
+  document.getElementById('s-lose').textContent = list.filter(m => getResult(m.us, m.them) === 'lose').length;
+  if (list.length === 0) { el.innerHTML = '<div class="empty">試合が記録されていません</div>'; return; }
+  el.innerHTML = list.map(m => {
+    const r = getResult(m.us, m.them);
+    return `
+      <div class="match-card ${r}" onclick="openEdit('${m.id}')">
+        <div class="match-top">
+          <div class="match-date">${m.date}　<span style="color:#555">${gradeLabel(m.grade)}</span></div>
+          <div class="match-badge badge-${r}">${getResultLabel(r)}</div>
+        </div>
+        <div class="match-score-row">
+          <div class="match-team" style="text-align:right">デランテロFC</div>
+          <div class="match-score">${m.us} - ${m.them}</div>
+          <div class="match-team">${m.opponent}</div>
+        </div>
+        ${m.venueLocal ? `<div class="match-venue">📍 ${m.venueLocal}</div>` : ''}
+        ${m.scorers ? `<div class="match-scorers">⚽ ${m.scorers}</div>` : ''}
+        ${m.coachMemo ? `<div class="match-coach">🧑‍💼 ${m.coachMemo}</div>` : ''}
+        <div class="edit-hint">タップして編集 ✏️</div>
+      </div>`;
+  }).join('');
+  const opponents = [...new Set(matches.map(m => m.opponent))];
+  document.getElementById('opponent-list').innerHTML = opponents.map(o => `<option value="${o}">`).join('');
+  const venues = [...new Set(matches.map(m => m.venueLocal).filter(Boolean))];
+  document.getElementById('venue-list').innerHTML = venues.map(v => `<option value="${v}">`).join('');
+}
+
+async function api(params) {
+  const url = GAS_URL + '?' + new URLSearchParams(params);
+  const res = await fetch(url);
+  return res.json();
+}
+
+async function loadMatches() {
+  try {
+    const data = await api({ action: 'get' });
+    matches = data;
+    render();
+  } catch(e) { showToast('⚠️ 読み込みエラー'); }
+}
+
+function setGrade(g, btn) {
+  currentGrade = g;
+  document.querySelectorAll('.grade-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+
+function showTab(tab) {
+  document.getElementById('tab-list').style.display = tab === 'list' ? '' : 'none';
+  document.getElementById('tab-input').style.display = tab === 'input' ? '' : 'none';
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('active', (i === 0 && tab === 'list') || (i === 1 && tab === 'input'));
+  });
+}
+
+async function addMatch() {
+  const us = parseInt(document.getElementById('f-score-us').value);
+  const them = parseInt(document.getElementById('f-score-them').value);
+  const opponent = document.getElementById('f-opponent').value.trim();
+  const date = document.getElementById('f-date').value;
+  if (!date || !opponent || isNaN(us) || isNaN(them)) { showToast('⚠️ 日付・対戦相手・スコアは必須です'); return; }
+  const m = {
+    action: 'add',
+    grade: document.getElementById('f-grade').value,
+    date, opponent,
+    venueLocal: document.getElementById('f-venue').value.trim(),
+    us, them,
+    scorers: document.getElementById('f-scorers').value.trim(),
+    memo: document.getElementById('f-memo').value.trim(),
+    coachMemo: document.getElementById('f-coach-memo').value.trim(),
+  };
+  showToast('⏳ 保存中...');
+  try {
+    const res = await api(m);
+    m.id = res.id;
+    matches.push(m);
+    ['f-opponent','f-venue','f-score-us','f-score-them','f-scorers','f-memo','f-coach-memo'].forEach(id => document.getElementById(id).value = '');
+    showToast('✅ 記録しました！');
+    render();
+    setTimeout(() => showTab('list'), 800);
+  } catch(e) { showToast('⚠️ 保存エラー'); }
+}
+
+function openEdit(id) {
+  const m = matches.find(x => x.id == id);
+  if (!m) return;
+  document.getElementById('e-id').value = m.id;
+  document.getElementById('e-grade').value = m.grade;
+  document.getElementById('e-date').value = m.date;
+  document.getElementById('e-opponent').value = m.opponent;
+  document.getElementById('e-venue').value = m.venueLocal || '';
+  document.getElementById('e-score-us').value = m.us;
+  document.getElementById('e-score-them').value = m.them;
+  document.getElementById('e-scorers').value = m.scorers || '';
+  document.getElementById('e-memo').value = m.memo || '';
+  document.getElementById('e-coach-memo').value = m.coachMemo || '';
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById('modal-overlay')) {
+    document.getElementById('modal-overlay').classList.remove('open');
+  }
+}
+
+async function updateMatch() {
+  const id = document.getElementById('e-id').value;
+  const us = parseInt(document.getElementById('e-score-us').value);
+  const them = parseInt(document.getElementById('e-score-them').value);
+  if (isNaN(us) || isNaN(them)) { showToast('⚠️ スコアを入力してください'); return; }
+  const m = {
+    action: 'update', id,
+    grade: document.getElementById('e-grade').value,
+    date: document.getElementById('e-date').value,
+    opponent: document.getElementById('e-opponent').value.trim(),
+    venueLocal: document.getElementById('e-venue').value.trim(),
+    us, them,
+    scorers: document.getElementById('e-scorers').value.trim(),
+    memo: document.getElementById('e-memo').value.trim(),
+    coachMemo: document.getElementById('e-coach-memo').value.trim(),
+  };
+  showToast('⏳ 更新中...');
+  try {
+    await api(m);
+    const idx = matches.findIndex(x => x.id == id);
+    if (idx !== -1) matches[idx] = m;
+    document.getElementById('modal-overlay').classList.remove('open');
+    showToast('✅ 更新しました！');
+    render();
+  } catch(e) { showToast('⚠️ 更新エラー'); }
+}
+
+async function deleteMatch() {
+  const id = document.getElementById('e-id').value;
+  if (!confirm('この試合を削除しますか？')) return;
+  showToast('⏳ 削除中...');
+  try {
+    await api({ action: 'delete', id });
+    matches = matches.filter(x => x.id != id);
+    document.getElementById('modal-overlay').classList.remove('open');
+    showToast('🗑 削除しました');
+    render();
+  } catch(e) { showToast('⚠️ 削除エラー'); }
+}
+
+function downloadCSV() {
+  const list = filtered();
+  if (list.length === 0) { showToast('データがありません'); return; }
+  const header = ['日付','カテゴリ','対戦相手','会場','デランテロFC得点','相手得点','結果','得点者','メモ','コーチメモ'];
+  const rows = list.map(m => [m.date, gradeLabel(m.grade), m.opponent, m.venueLocal, m.us, m.them, getResultLabel(getResult(m.us, m.them)), m.scorers, m.memo, m.coachMemo]);
+  const csv = '\uFEFF' + [header, ...rows].map(r => r.map(c => `"${(c||'').toString().replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'デランテロFC試合記録.csv';
+  a.click();
+  showToast('📥 ダウンロードしました');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+loadMatches();
+</script>
+</body>
+</html>
