@@ -49,6 +49,7 @@
   .match-team { font-size: 13px; font-weight: 700; flex: 1; }
   .match-score { font-family: 'Bebas Neue', sans-serif; font-size: 36px; letter-spacing: 3px; color: #fff; white-space: nowrap; }
   .match-venue { font-size: 12px; color: #666; margin-top: 4px; }
+  .match-tournament { font-size: 12px; color: #8a7abf; margin-top: 4px; }
   .match-scorers { font-size: 12px; color: #a0aabf; margin-top: 4px; }
   .match-coach { font-size: 12px; color: #7a9abf; margin-top: 4px; }
   .edit-hint { font-size: 11px; color: #444; text-align: right; margin-top: 8px; }
@@ -125,6 +126,12 @@
       <label>試合日</label>
       <input type="date" id="f-date">
     </div>
+    <!-- ★追加：大会名 -->
+    <div class="form-group">
+      <label>大会名（任意）</label>
+      <input type="text" id="f-tournament" list="tournament-list" placeholder="例: 北信越プリンスリーグ">
+      <datalist id="tournament-list"></datalist>
+    </div>
     <div class="form-group">
       <label>対戦相手</label>
       <input type="text" id="f-opponent" list="opponent-list" placeholder="チーム名を入力 or 選択">
@@ -177,6 +184,11 @@
     <div class="form-group">
       <label>試合日</label>
       <input type="date" id="e-date">
+    </div>
+    <!-- ★追加：大会名（編集モーダル） -->
+    <div class="form-group">
+      <label>大会名（任意）</label>
+      <input type="text" id="e-tournament" list="tournament-list" placeholder="例: 北信越プリンスリーグ">
     </div>
     <div class="form-group">
       <label>対戦相手</label>
@@ -244,16 +256,22 @@ function render() {
           <div class="match-score">${m.us} - ${m.them}</div>
           <div class="match-team">${m.opponent}</div>
         </div>
+        ${m.tournament ? `<div class="match-tournament">🏆 ${m.tournament}</div>` : ''}
         ${m.venueLocal ? `<div class="match-venue">📍 ${m.venueLocal}</div>` : ''}
         ${m.scorers ? `<div class="match-scorers">⚽ ${m.scorers}</div>` : ''}
         ${m.coachMemo ? `<div class="match-coach">🧑‍💼 ${m.coachMemo}</div>` : ''}
         <div class="edit-hint">タップして編集 ✏️</div>
       </div>`;
   }).join('');
+
+  // datalist更新
   const opponents = [...new Set(matches.map(m => m.opponent))];
   document.getElementById('opponent-list').innerHTML = opponents.map(o => `<option value="${o}">`).join('');
   const venues = [...new Set(matches.map(m => m.venueLocal).filter(Boolean))];
   document.getElementById('venue-list').innerHTML = venues.map(v => `<option value="${v}">`).join('');
+  // ★大会名datalist
+  const tournaments = [...new Set(matches.map(m => m.tournament).filter(Boolean))];
+  document.getElementById('tournament-list').innerHTML = tournaments.map(t => `<option value="${t}">`).join('');
 }
 
 function api(params) {
@@ -304,6 +322,7 @@ function addMatch() {
     action: 'add',
     grade: document.getElementById('f-grade').value,
     date, opponent,
+    tournament: document.getElementById('f-tournament').value.trim(), // ★追加
     venueLocal: document.getElementById('f-venue').value.trim(),
     us, them,
     scorers: document.getElementById('f-scorers').value.trim(),
@@ -314,7 +333,7 @@ function addMatch() {
   api(m).then(res => {
     m.id = res.id;
     matches.push(m);
-    ['f-opponent','f-venue','f-score-us','f-score-them','f-scorers','f-memo','f-coach-memo'].forEach(id => document.getElementById(id).value = '');
+    ['f-tournament','f-opponent','f-venue','f-score-us','f-score-them','f-scorers','f-memo','f-coach-memo'].forEach(id => document.getElementById(id).value = '');
     showToast('✅ 記録しました！');
     render();
     setTimeout(() => showTab('list'), 800);
@@ -327,6 +346,7 @@ function openEdit(id) {
   document.getElementById('e-id').value = m.id;
   document.getElementById('e-grade').value = m.grade;
   document.getElementById('e-date').value = m.date;
+  document.getElementById('e-tournament').value = m.tournament || ''; // ★追加
   document.getElementById('e-opponent').value = m.opponent;
   document.getElementById('e-venue').value = m.venueLocal || '';
   document.getElementById('e-score-us').value = m.us;
@@ -352,6 +372,7 @@ function updateMatch() {
     action: 'update', id,
     grade: document.getElementById('e-grade').value,
     date: document.getElementById('e-date').value,
+    tournament: document.getElementById('e-tournament').value.trim(), // ★追加
     opponent: document.getElementById('e-opponent').value.trim(),
     venueLocal: document.getElementById('e-venue').value.trim(),
     us, them,
@@ -384,8 +405,9 @@ function deleteMatch() {
 function downloadCSV() {
   const list = filtered();
   if (list.length === 0) { showToast('データがありません'); return; }
-  const header = ['日付','カテゴリ','対戦相手','会場','デランテロFC得点','相手得点','結果','得点者','メモ','コーチメモ'];
-  const rows = list.map(m => [m.date, gradeLabel(m.grade), m.opponent, m.venueLocal, m.us, m.them, getResultLabel(getResult(m.us, m.them)), m.scorers, m.memo, m.coachMemo]);
+  // ★大会名を列に追加
+  const header = ['日付','カテゴリ','大会名','対戦相手','会場','デランテロFC得点','相手得点','結果','得点者','メモ','コーチメモ'];
+  const rows = list.map(m => [m.date, gradeLabel(m.grade), m.tournament, m.opponent, m.venueLocal, m.us, m.them, getResultLabel(getResult(m.us, m.them)), m.scorers, m.memo, m.coachMemo]);
   const csv = '\uFEFF' + [header, ...rows].map(r => r.map(c => `"${(c||'').toString().replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });
   const a = document.createElement('a');
